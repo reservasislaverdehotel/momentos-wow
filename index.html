@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Momento WOW">
+<meta name="theme-color" content="#1f5c4a">
+<title>Momentos WOW · Isla Verde</title>
+<style>
+  :root {
+    --verde: #1f5c4a;
+    --verde-claro: #e7f1ed;
+    --tinta: #1d2a26;
+    --suave: #5b6b66;
+    --borde: #d6e0dc;
+    --fondo: #f6f8f7;
+    --rojo: #d92d20;
+    --blanco: #ffffff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--fondo); color: var(--tinta);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 16px 16px 120px; }
+  header { padding: 8px 0 16px; }
+  header small { color: var(--verde); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+  header h1 { margin: 2px 0 0; font-size: 26px; }
+
+  section { background: var(--blanco); border: 1px solid var(--borde); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  section h2 { margin: 0 0 4px; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+  .num { width: 24px; height: 24px; border-radius: 50%; background: var(--verde); color: #fff; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .hint { color: var(--suave); font-size: 13px; margin: 0 0 12px 32px; }
+
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .chip { border: 1.5px solid var(--borde); background: var(--blanco); color: var(--tinta); border-radius: 12px;
+    padding: 12px 8px; font: inherit; font-weight: 600; cursor: pointer; min-height: 48px; }
+  .chip[aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+  .burbuja { background: var(--verde-claro); border-radius: 14px 14px 14px 4px; padding: 12px 14px; font-size: 14.5px; margin-bottom: 16px; }
+  .burbuja p { margin: 0 0 6px; font-weight: 600; }
+  .burbuja ol { margin: 0; padding-left: 20px; }
+  .burbuja li { margin: 3px 0; }
+
+  .grabadora { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .mic { width: 96px; height: 96px; border-radius: 50%; border: none; background: var(--verde); color: #fff;
+    font-size: 40px; cursor: pointer; box-shadow: 0 6px 18px rgba(31,92,74,.3); }
+  .mic.grabando { background: var(--rojo); animation: pulso 1.3s infinite; }
+  @keyframes pulso { 0%{box-shadow:0 0 0 0 rgba(217,45,32,.45)} 70%{box-shadow:0 0 0 18px rgba(217,45,32,0)} 100%{box-shadow:0 0 0 0 rgba(217,45,32,0)} }
+  .estado { color: var(--suave); font-size: 14px; text-align: center; }
+  .tiempo { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
+  audio { width: 100%; }
+  .link { background: none; border: none; color: var(--verde); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 8px; }
+  .archivo { display: none; }
+
+  .barra { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(transparent, var(--fondo) 30%); }
+  .enviar { display: block; width: 100%; max-width: 520px; margin: 0 auto; border: none; border-radius: 14px;
+    background: var(--verde); color: #fff; font: inherit; font-size: 17px; font-weight: 700; padding: 16px; cursor: pointer; }
+  .enviar:disabled { background: #a9bdb6; cursor: default; }
+  .falta { text-align: center; color: var(--suave); font-size: 13px; margin: 6px 0 0; }
+
+  .pantalla { display: none; text-align: center; padding: 48px 8px; }
+  .pantalla .grande { font-size: 64px; }
+  .pantalla h2 { margin: 8px 0; }
+  .error { background: #fde8e8; color: #8a1c13; border-radius: 12px; padding: 12px; margin: 12px 0; display: none; }
+  input[type=password] { width: 100%; font: inherit; font-size: 20px; padding: 12px; border: 1.5px solid var(--borde); border-radius: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <small>Isla Verde</small>
+    <h1>Momento WOW</h1>
+  </header>
+
+  <!-- PIN (solo si está activado) -->
+  <div id="vistaPin" class="pantalla">
+    <div class="grande">🔒</div>
+    <h2>Escribe el PIN</h2>
+    <p class="estado">Solo se pide una vez en este celular.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off">
+    <p><button class="enviar" id="btnPin">Entrar</button></p>
+  </div>
+
+  <!-- FORMULARIO -->
+  <div id="vistaForm">
+    <section>
+      <h2><span class="num">1</span>¿Quién hizo el momento?</h2>
+      <p class="hint">Puedes elegir más de una persona.</p>
+      <div class="chips" id="empleados"></div>
+    </section>
+
+    <section>
+      <h2><span class="num">2</span>¿En qué isla?</h2>
+      <p class="hint">Un registro por cada isla.</p>
+      <div class="chips" id="islas"></div>
+    </section>
+
+    <section>
+      <h2><span class="num">3</span>Graba tu nota de voz</h2>
+      <div class="burbuja" style="margin-top:12px">
+        <p>🎙️ Cuéntale a Andres, sobre todo cómo reaccionaron los huéspedes:</p>
+        <ol>
+          <li>¿Cuál fue el momento WOW y cómo reaccionaron?</li>
+          <li>¿Se tomó la foto?</li>
+          <li>¿Estaban en la piscina? ¿Cómo estaba? o los invitaste a usarla?</li>
+          <li>¿Ofreciste los juegos de mesa?</li>
+        </ol>
+      </div>
+
+      <div class="grabadora">
+        <button class="mic" id="mic" aria-label="Grabar">🎙️</button>
+        <div class="tiempo" id="tiempo" hidden>0:00</div>
+        <div class="estado" id="estadoMic">Toca el micrófono para grabar</div>
+        <audio id="reproductor" controls hidden></audio>
+        <button class="link" id="regrabar" hidden>Borrar y grabar de nuevo</button>
+        <label class="link" id="usarGrabadora" hidden>Grabar con la grabadora del celular
+          <input class="archivo" id="archivo" type="file" accept="audio/*" capture>
+        </label>
+      </div>
+    </section>
+
+    <div class="error" id="error"></div>
+  </div>
+
+  <!-- ENVIANDO / LISTO -->
+  <div id="vistaEnviando" class="pantalla">
+    <div class="grande">⏳</div>
+    <h2>Enviando…</h2>
+    <p class="estado">No cierres esta pantalla.</p>
+  </div>
+  <div id="vistaListo" class="pantalla">
+    <div class="grande">🌿</div>
+    <h2 id="gracias">¡Gracias!</h2>
+    <p class="estado">Tu momento WOW quedó registrado.</p>
+    <p><button class="enviar" id="otro">Registrar otro momento</button></p>
+  </div>
+</main>
+
+<div class="barra" id="barra">
+  <button class="enviar" id="enviar" disabled>Confirmar y enviar</button>
+  <p class="falta" id="falta"></p>
+</div>
+
+<script>
+  const API = 'https://script.google.com/macros/s/AKfycbwi58JOj8FbJlZCp7veLW_5KpZ13eGY9WQLTaY-HjHAmNnyO-p5XbCl4kXZOYz29S45/exec';
+  // Lista de respaldo; la lista real se carga desde Apps Script (bloque CONFIG).
+  let DATOS = { empleados: ['Mayra', 'Alejandra', 'Tatiana', 'Mariana', 'Yohelis', 'Mabi', 'Samir'],
+    islas: ['Santorini', 'Tulum', 'Bali', 'Bora Bora', 'Mykonos', 'Maldivas'], pedirPin: false };
+  const MAX_SEG = 5 * 60;
+  const $ = (id) => document.getElementById(id);
+  const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  const estado = { empleados: [], isla: null, audio: null, mime: '' };
+  try { estado.empleados = JSON.parse(leer('wow_empleados') || '[]').filter((e) => DATOS.empleados.includes(e)); } catch (e) {}
+
+  function vista(nombre) {
+    ['vistaPin', 'vistaForm', 'vistaEnviando', 'vistaListo'].forEach((v) => {
+      $(v).style.display = v === nombre ? (v === 'vistaForm' ? 'block' : 'block') : 'none';
+    });
+    $('barra').style.display = nombre === 'vistaForm' ? 'block' : 'none';
+  }
+
+  function pintarChips(contenedor, opciones, esActivo, alTocar) {
+    $(contenedor).innerHTML = '';
+    opciones.forEach((op) => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button'; b.textContent = op;
+      b.setAttribute('aria-pressed', esActivo(op));
+      b.onclick = () => { alTocar(op); pintar(); };
+      $(contenedor).appendChild(b);
+    });
+  }
+
+  function pintar() {
+    pintarChips('empleados', DATOS.empleados, (e) => estado.empleados.includes(e), (e) => {
+      estado.empleados = estado.empleados.includes(e) ? estado.empleados.filter((x) => x !== e) : estado.empleados.concat(e);
+      guardar('wow_empleados', JSON.stringify(estado.empleados));
+    });
+    pintarChips('islas', DATOS.islas, (i) => estado.isla === i, (i) => { estado.isla = i; });
+
+    const falta = [];
+    if (!estado.empleados.length) falta.push('tu nombre');
+    if (!estado.isla) falta.push('la isla');
+    if (!estado.audio) falta.push('la nota de voz');
+    $('enviar').disabled = falta.length > 0 || grabando;
+    $('falta').textContent = falta.length ? 'Falta: ' + falta.join(', ') : '';
+  }
+
+  /* ---------- Grabadora ---------- */
+  let grabador = null, trozos = [], grabando = false, inicio = 0, reloj = null, stream = null;
+  const puedeGrabar = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+
+  function elegirMime() {
+    const tipos = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'];
+    return tipos.find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+  }
+
+  function mostrarAlternativa(msg) {
+    $('estadoMic').textContent = msg;
+    $('usarGrabadora').hidden = false;
+  }
+
+  async function empezar() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      mostrarAlternativa('No pudimos usar el micrófono. Revisa el permiso o usa la grabadora del celular:');
+      return;
+    }
+    const mime = elegirMime();
+    grabador = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 48000 } : undefined);
+    trozos = [];
+    grabador.ondataavailable = (e) => { if (e.data && e.data.size) trozos.push(e.data); };
+    grabador.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const tipo = grabador.mimeType || mime || 'audio/webm';
+      listo(new Blob(trozos, { type: tipo }), tipo);
+    };
+    grabador.start(1000);
+    grabando = true; inicio = Date.now();
+    $('mic').classList.add('grabando'); $('mic').textContent = '⏹'; $('mic').setAttribute('aria-label', 'Parar');
+    $('tiempo').hidden = false; $('tiempo').textContent = '0:00';
+    $('estadoMic').textContent = 'Grabando… toca para parar';
+    reloj = setInterval(() => {
+      const s = Math.floor((Date.now() - inicio) / 1000);
+      $('tiempo').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      if (s >= MAX_SEG) parar();
+    }, 250);
+    pintar();
+  }
+
+  function parar() {
+    clearInterval(reloj);
+    grabando = false;
+    if (grabador && grabador.state !== 'inactive') grabador.stop();
+  }
+
+  function listo(blob, tipo) {
+    estado.audio = blob; estado.mime = tipo;
+    $('reproductor').src = URL.createObjectURL(blob);
+    $('reproductor').hidden = false;
+    $('regrabar').hidden = false;
+    $('mic').hidden = true; $('tiempo').hidden = true; $('usarGrabadora').hidden = true;
+    $('estadoMic').textContent = '✅ Nota de voz lista. Escúchala si quieres.';
+    pintar();
+  }
+
+  function reiniciarAudio() {
+    estado.audio = null; estado.mime = '';
+    $('reproductor').hidden = true; $('reproductor').removeAttribute('src');
+    $('regrabar').hidden = true;
+    $('mic').hidden = false; $('mic').classList.remove('grabando'); $('mic').textContent = '🎙️';
+    $('estadoMic').textContent = 'Toca el micrófono para grabar';
+    $('archivo').value = '';
+    if (!puedeGrabar) mostrarAlternativa('Usa la grabadora del celular:');
+    pintar();
+  }
+
+  $('mic').onclick = () => (grabando ? parar() : empezar());
+  $('regrabar').onclick = reiniciarAudio;
+  $('archivo').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) listo(f, f.type || 'audio/mp4');
+  };
+
+  /* ---------- Envío ---------- */
+  function aBase64(blob) {
+    return new Promise((ok, mal) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result).split(',')[1]);
+      r.onerror = mal;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function mostrarError(msg) {
+    $('error').textContent = msg;
+    $('error').style.display = msg ? 'block' : 'none';
+  }
+
+  $('enviar').onclick = async () => {
+    mostrarError('');
+    vista('vistaEnviando');
+    let audio;
+    try { audio = await aBase64(estado.audio); } catch (e) {
+      vista('vistaForm'); mostrarError('No se pudo leer el audio. Grábalo de nuevo.'); return;
+    }
+    const datos = { empleados: estado.empleados, isla: estado.isla, mime: estado.mime, audio, pin: leer('wow_pin') || '' };
+    try {
+      const res = await fetch(API, { method: 'POST', body: JSON.stringify(datos) });
+      const r = await res.json();
+      if (!r.ok) throw new Error(r.error || 'Error del servidor');
+      $('gracias').textContent = '¡Gracias, ' + estado.empleados.join(' y ') + '!';
+      vista('vistaListo');
+    } catch (err) {
+      vista('vistaForm');
+      const m = (err && err.message) || String(err);
+      if (/PIN/.test(m)) { try { localStorage.removeItem('wow_pin'); } catch (e) {} inicio_(); return; }
+      mostrarError('No se pudo enviar (' + m + '). Revisa tu internet y toca "Confirmar y enviar" otra vez. Tu audio sigue guardado aquí.');
+    }
+  };
+
+  $('otro').onclick = () => {
+    estado.isla = null;
+    reiniciarAudio();
+    vista('vistaForm');
+    window.scrollTo(0, 0);
+  };
+
+  $('btnPin').onclick = () => {
+    const v = $('pin').value.trim();
+    if (!v) return;
+    guardar('wow_pin', v);
+    vista('vistaForm');
+  };
+
+  function inicio_() {
+    if (DATOS.pedirPin && !leer('wow_pin')) vista('vistaPin'); else vista('vistaForm');
+  }
+
+  if (!puedeGrabar) mostrarAlternativa('Usa la grabadora del celular:');
+  pintar();
+  inicio_();
+
+  fetch(API + '?api=config').then((r) => r.json()).then((d) => {
+    if (!d || !d.empleados) return;
+    DATOS = d;
+    estado.empleados = estado.empleados.filter((e) => DATOS.empleados.includes(e));
+    pintar();
+    if (DATOS.pedirPin && $('vistaForm').style.display !== 'none' && !leer('wow_pin')) inicio_();
+  }).catch(() => {});
+</script>
+</body>
+</html>
